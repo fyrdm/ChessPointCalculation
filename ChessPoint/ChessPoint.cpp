@@ -5,13 +5,9 @@
 #include <string>
 
 
-class cTasFactory;
+
 class cOyunTahtasiVisitor;
-class cSatrancTahtasiVisitor;
-class cTas;
-class cVezir;
-class cAt;
-class cPiyon;
+
 
 struct MatrixPos2D
 {
@@ -21,17 +17,18 @@ struct MatrixPos2D
     int J = 0;
 
     int linearPos();
+
     MatrixPos2D operator+(MatrixPos2D right)
     {
         return MatrixPos2D(I + right.I, J + right.J);
     }
 };
 
-enum class Takim { SIYAH , BEYAZ };
+enum class Takim { SIYAH, BEYAZ };
 
-enum class TasTurleri { ps = 1, as, fs, ks, vs, ss, // SIYAH Taslar
-                        NONE ,                      // Bos alanlar icin
-                        pb, ab, fb, kb, vb, sb};    // BEYAZ Taslar  
+enum class TasTurleri { ps = 1, as, fs, ks, vs, ss, // SIYAH Taslar "icin
+                        NONE ,                      // Bos alanlar  icin
+                        pb, ab, fb, kb, vb, sb};    // BEYAZ Taslar icin
 
 std::map<std::string, TasTurleri> globalTasMap =
 {
@@ -70,6 +67,8 @@ public:
     Takim getTeam() { return m_team; }
     bool getThreatened() { return m_threatened; }
     float getPoint() { return m_point; }
+
+    virtual ~cTas() {}
 
 protected:
     MatrixPos2D m_position;
@@ -151,53 +150,51 @@ class cTasFactory
 public:
     cTas* createTas(TasTurleri type, MatrixPos2D pos)
     {
-        cTas* tas = new cAt(Takim::BEYAZ, MatrixPos2D(0, 0));
-
         switch (type)
         {
         case TasTurleri::ps:
-            tas = new cPiyon(Takim::SIYAH, pos);
+            return new cPiyon(Takim::SIYAH, pos);
             break;
         case TasTurleri::as:
-            tas = new cAt(Takim::SIYAH, pos);
+            return new cAt(Takim::SIYAH, pos);
             break;
         case TasTurleri::fs:
-            tas = new cFil(Takim::SIYAH, pos);
+            return new cFil(Takim::SIYAH, pos);
             break;
         case TasTurleri::ks:
-            tas = new cKale(Takim::SIYAH, pos);
+            return new cKale(Takim::SIYAH, pos);
             break;
         case TasTurleri::vs:
-            tas = new cVezir(Takim::SIYAH, pos);
+            return new cVezir(Takim::SIYAH, pos);
             break;
         case TasTurleri::ss:
-            tas = new cSah(Takim::SIYAH, pos);
+            return new cSah(Takim::SIYAH, pos);
             break;
         case TasTurleri::NONE:
+            return NULL;
             break;
         case TasTurleri::pb:
-            tas = new cPiyon(Takim::BEYAZ, pos);
+            return new cPiyon(Takim::BEYAZ, pos);
             break;
         case TasTurleri::ab:
-            tas = new cAt(Takim::BEYAZ, pos);
+            return new cAt(Takim::BEYAZ, pos);
             break;
         case TasTurleri::fb:
-            tas = new cFil(Takim::BEYAZ, pos);
+            return new cFil(Takim::BEYAZ, pos);
             break;
         case TasTurleri::kb:
-            tas = new cKale(Takim::BEYAZ, pos);
+            return new cKale(Takim::BEYAZ, pos);
             break;
         case TasTurleri::vb:
-            tas = new cVezir(Takim::BEYAZ, pos);
+            return new cVezir(Takim::BEYAZ, pos);
             break;
         case TasTurleri::sb:
-            tas = new cSah(Takim::BEYAZ, pos);
+            return new cSah(Takim::BEYAZ, pos);
             break;
         default:
+            return new cAt(Takim::BEYAZ, MatrixPos2D(0, 0));
             break;
         }
-
-        return tas;
     }
 
 private:
@@ -739,7 +736,6 @@ public:
         return threatenedPositions;
     }
 
-
     virtual std::vector<MatrixPos2D> visit(cKale* kale) override
     {
         // TODO: Threat Analyze
@@ -932,14 +928,8 @@ public:
         return m_tahtaMatrisi[i][j];
     }
 
-
     void printElements()
     {
-        MatrixPos2D pos = { 1,2 };
-        std::cout << pos.I << " " << pos.J << std::endl;
-        std::cout << MatrixPos2D().I << " " << MatrixPos2D().J << std::endl;
-        std::cout << std::endl;
-
         for (size_t i = 0; i < m_rowSize; i++)
         {
             for (size_t j = 0; j < m_colSize; j++)
@@ -949,6 +939,7 @@ public:
             std::cout << std::endl;
         }
     }
+
     static const int m_colSize = 8;
     static const int m_rowSize = 8;
 private:
@@ -1044,6 +1035,21 @@ public:
 
     }
 
+    ~SatrancManager()
+    {
+        // TODO:
+        // destroy OyunTahtasiVisitor instance
+        delete OTvisitor;
+
+        // delete all dynamically allocated cTas* intances in the map
+        // std::map destructor method handles the rest
+        std::map<int, cTas*>::iterator itr;
+        for (itr = mapTaslar.begin(); itr != mapTaslar.end(); itr++)
+        {
+            delete (itr->second);
+        }
+    }
+
 private:
     std::map<int, cTas*> mapTaslar;
     cOyunTahtasiVisitor* OTvisitor;
@@ -1052,7 +1058,10 @@ private:
 };
 
 
-int MatrixPos2D::linearPos() { return I * cSatrancTahtasiVisitor::m_rowSize + J; }
+int MatrixPos2D::linearPos()
+{
+    return I * cSatrancTahtasiVisitor::m_rowSize + J;
+}
 
 
 /* accept method definitions: */
@@ -1094,8 +1103,6 @@ std::vector<MatrixPos2D> cFil::accept(cOyunTahtasiVisitor* visitor)
 
 int main()
 {
-    //std::vector<cTas*> vTaslar;
-    //cOyunTahtasiVisitor* OTvisitor = new cSatrancTahtasiVisitor("board1.txt");
     SatrancManager* sm = new SatrancManager("board3.txt");
     sm->CalculatePoints();
 
